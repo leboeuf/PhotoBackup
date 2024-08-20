@@ -10,12 +10,10 @@ PHPhotoLibrary.requestAuthorization { status in
     }
 }
 
-// Fetch shared albums
-let fetchOptions = PHFetchOptions()
-let sharedAlbumCollection = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumCloudShared, options: fetchOptions)
+private var sharedAlbums: [PHAssetCollection] = fetchSharedAlbums();
 
-sharedAlbumCollection.enumerateObjects { (collection, index, stop) in
-    print("Shared Album: \(collection.localizedTitle ?? "Untitled")")
+for sharedAlbum in sharedAlbums {
+    print("Shared Album: \(sharedAlbum.localizedTitle ?? "Untitled")")
 }
 
 exit(EXIT_SUCCESS)

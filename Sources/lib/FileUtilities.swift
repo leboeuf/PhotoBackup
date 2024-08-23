@@ -7,10 +7,10 @@ func getBackupDirectory() -> URL {
     return backupDirectory
 }
 
-func getDatabasePath() -> URL {
+func getDatabasePath(albumId: String) -> URL {
     return getBackupDirectory()
         .appendingPathComponent("_db")
-        .appendingPathComponent("db.sqlite")
+        .appendingPathComponent("\(albumId).sqlite")
 }
 
 func createFileIfNotExists(filePath: URL) {

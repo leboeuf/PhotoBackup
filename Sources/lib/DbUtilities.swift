@@ -31,8 +31,6 @@ private func createSchema(in dbQueue: DatabaseQueue) throws {
     try dbQueue.write { db in
         try db.create(table: "assets") { t in
             t.primaryKey("id", .text)
-            t.column("album", .text).notNull()
-            t.column("dateProcessed", .datetime).notNull()
         }
     }
 }

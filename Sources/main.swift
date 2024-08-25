@@ -39,8 +39,7 @@ exit(EXIT_SUCCESS)
 
 func downloadAsset(asset: PHAsset, db: DatabaseQueue, albumId: String) {
     guard let assetId = extractGuidFromFilename(for: asset) else {
-        print("Error getting asset ID.")
-        exit(1)
+        fatalError("Error getting asset ID.")
     }
 
     let creationDate = getCreationDate(of: asset, using: dateFormatter)
@@ -63,6 +62,8 @@ func downloadAsset(asset: PHAsset, db: DatabaseQueue, albumId: String) {
 
         if (asset.mediaSubtypes.contains(.photoLive)) {
             print("  + Live photo")
+            fetchLivePhoto(for: asset, albumId: albumId)
+            exit(EXIT_SUCCESS) // TODO
         }
         return
     }

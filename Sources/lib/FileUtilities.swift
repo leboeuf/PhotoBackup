@@ -15,19 +15,26 @@ func getDatabasePath(albumId: String) -> URL {
 
 func createFileIfNotExists(filePath: URL) {
     let fileManager = FileManager.default
+
+    createDirectoryIfNotExists(directory: filePath.deletingLastPathComponent())
     
     do {
-        // Ensure the directory exists
-        let directory = filePath.deletingLastPathComponent()
-        if !fileManager.fileExists(atPath: directory.path) {
-            try fileManager.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
-        }
-        
-        // Ensure the file exists
         if !fileManager.fileExists(atPath: filePath.path) {
             fileManager.createFile(atPath: filePath.path, contents: nil, attributes: nil)
         }
     } catch {
         print("Failed to create database path: \(error)")
+    }
+}
+
+func createDirectoryIfNotExists(directory: URL) {
+    let fileManager = FileManager.default
+    
+    do {
+        if !fileManager.fileExists(atPath: directory.path) {
+            try fileManager.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
+        }
+    } catch {
+        print("Failed to create directory: \(error)")
     }
 }

@@ -29,15 +29,16 @@ for sharedAlbum: PHAssetCollection in sharedAlbums {
 
     // Fetch assets
     let assets = fetchPhotosInAlbum(for: sharedAlbum)
-    assets.enumerateObjects { (asset, index, stop) in
+    let assetArray = assets.objects(at: IndexSet(0..<assets.count))
+    for (index, asset) in assetArray.enumerated() {
         print("[\(index + 1)/\(sharedAlbum.estimatedAssetCount)]")
-        downloadAsset(asset: asset, db: albumDb, albumId: albumId)
+        await downloadAsset(asset: asset, db: albumDb, albumId: albumId)
     }
 }
 
 exit(EXIT_SUCCESS)
 
-func downloadAsset(asset: PHAsset, db: DatabaseQueue, albumId: String) {
+func downloadAsset(asset: PHAsset, db: DatabaseQueue, albumId: String) async {
     guard let assetId = extractGuidFromFilename(for: asset) else {
         fatalError("Error getting asset ID.")
     }
@@ -48,6 +49,7 @@ func downloadAsset(asset: PHAsset, db: DatabaseQueue, albumId: String) {
 
     let outputDirectory = getBackupDirectory()
         .appendingPathComponent(albumId)
+    createDirectoryIfNotExists(directory: outputDirectory)
 
     if (asset.mediaType == .video) {
         // Request video
@@ -62,7 +64,7 @@ func downloadAsset(asset: PHAsset, db: DatabaseQueue, albumId: String) {
 
         if (asset.mediaSubtypes.contains(.photoLive)) {
             print("  + Live photo")
-            fetchLivePhoto(for: asset, albumId: albumId)
+            await fetchLivePhoto(for: asset, albumId: albumId, fileNamePrefix: creationDate)
             exit(EXIT_SUCCESS) // TODO
         }
         return

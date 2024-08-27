@@ -47,6 +47,8 @@ func downloadAsset(asset: PHAsset, db: DatabaseQueue, albumId: String) async {
     let customId = "\(creationDate)_\(assetId)".trimmingCharacters(in: .whitespaces)
     print("+ \(customId)")
 
+    // TODO: skip if already in db
+
     let outputDirectory = getBackupDirectory()
         .appendingPathComponent(albumId)
     createDirectoryIfNotExists(directory: outputDirectory)
@@ -54,6 +56,7 @@ func downloadAsset(asset: PHAsset, db: DatabaseQueue, albumId: String) async {
     if (asset.mediaType == .video) {
         // Request video
         print("  + Video")
+        await fetchVideo(for: asset, albumId: albumId, fileName: customId)
         exit(EXIT_SUCCESS) // TODO
         return
     }
@@ -64,8 +67,12 @@ func downloadAsset(asset: PHAsset, db: DatabaseQueue, albumId: String) async {
 
         if (asset.mediaSubtypes.contains(.photoLive)) {
             print("  + Live photo")
-            await fetchLivePhoto(for: asset, albumId: albumId, fileNamePrefix: creationDate)
-            exit(EXIT_SUCCESS) // TODO
+            //await fetchLivePhoto(for: asset, albumId: albumId, fileNamePrefix: creationDate)
+            //exit(EXIT_SUCCESS) // TODO
+        } else {
+            // TODO: fetch photo
+            //await fetchPhoto(for: asset, albumId: albumId, fileNamePrefix: creationDate)
+            //exit(EXIT_SUCCESS) // TODO
         }
         return
     }

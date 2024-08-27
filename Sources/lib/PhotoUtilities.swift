@@ -21,6 +21,40 @@ func fetchPhotosInAlbum(for album: PHAssetCollection) -> PHFetchResult<PHAsset> 
     return PHAsset.fetchAssets(in: album, options: fetchOptions)
 }
 
+func fetchVideo(for asset: PHAsset, albumId: String, fileName: String) async {
+    return await withCheckedContinuation { continuation in
+        let assetResources = PHAssetResource.assetResources(for: asset)
+        guard let videoResource = assetResources.first(where: { $0.type == .video }) else {
+            fatalError("Error: asset is not a video")
+        }
+
+        // TODO: this approach doesn't keep metadata
+        let options = PHAssetResourceRequestOptions()
+        options.isNetworkAccessAllowed = true
+
+        let fileExt = (videoResource.originalFilename as NSString).pathExtension
+        let outputDirectory = getBackupDirectory().appendingPathComponent(albumId)
+        let videoFileURL = outputDirectory.appendingPathComponent("\(fileName).\(fileExt)")
+        
+        Task {
+            do {
+                // Save video resource of Live Photo
+                if (!FileManager.default.fileExists(atPath: videoFileURL.path)) {
+                    try await PHAssetResourceManager.default().writeData(for: videoResource, toFile: videoFileURL, options: options)
+                    print("  + Video")
+                } else {
+                    print("  ! Video skipped (file already exists)")
+                }
+            } catch {
+                fatalError(error.localizedDescription)
+            }
+
+            // TODO: save to db
+            continuation.resume()
+        }
+    }
+}
+
 func fetchLivePhoto(for asset: PHAsset, albumId: String, fileNamePrefix: String) async {
     return await withCheckedContinuation { continuation in
         let livePhotoOptions = PHLivePhotoRequestOptions()
@@ -65,16 +99,21 @@ func fetchLivePhoto(for asset: PHAsset, albumId: String, fileNamePrefix: String)
 
             Task {
                 do {
-                    // TODO: check if files exist first, otherwise we get an error
-
-                    
                     // Save video resource of Live Photo
-                    try await PHAssetResourceManager.default().writeData(for: videoResource, toFile: videoFileURL, options: options)
-                    print("Video saved")
+                    if (!FileManager.default.fileExists(atPath: videoFileURL.path)) {
+                        try await PHAssetResourceManager.default().writeData(for: videoResource, toFile: videoFileURL, options: options)
+                        print("    + Video")
+                    } else {
+                        print("    ! Video skipped (file already exists)")
+                    }
                     
                     // Save photo resource of Live Photo
-                    try await PHAssetResourceManager.default().writeData(for: photoResource, toFile: photoFileURL, options: options)
-                    print("Photo saved")
+                    if (!FileManager.default.fileExists(atPath: photoFileURL.path)) {
+                        try await PHAssetResourceManager.default().writeData(for: photoResource, toFile: photoFileURL, options: options)
+                        print("    + Image")
+                    } else {
+                        print("    ! Image skipped (file already exists)")
+                    }
                 } catch {
                     fatalError(error.localizedDescription)
                 }

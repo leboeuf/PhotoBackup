@@ -34,7 +34,6 @@ for sharedAlbum: PHAssetCollection in sharedAlbums {
         print("[\(index + 1)/\(sharedAlbum.estimatedAssetCount)]")
         await downloadAsset(asset: asset, db: albumDb, albumId: albumId)
     }
-    exit(EXIT_SUCCESS) // TODO
 }
 
 exit(EXIT_SUCCESS)
@@ -66,7 +65,7 @@ func downloadAsset(asset: PHAsset, db: DatabaseQueue, albumId: String) async {
     if (asset.mediaType == .video) {
         print("  + Video")
         await fetchVideo(for: asset, albumId: albumId, assetId: customId, db: db)
-        await Task.sleep(1_000_000_000)
+        await Task.sleep(1_000_000_000) // TODO: config
         return
     }
 
@@ -78,7 +77,7 @@ func downloadAsset(asset: PHAsset, db: DatabaseQueue, albumId: String) async {
             print("  + Image")
             await fetchPhoto(for: asset, albumId: albumId, assetId: customId, db: db)
         }
-        await Task.sleep(1_000_000_000)
+        await Task.sleep(1_000_000_000) // TODO: config
         return
     }
 

@@ -29,8 +29,21 @@ private func schemaExists(in dbQueue: DatabaseQueue) throws -> Bool {
 
 private func createSchema(in dbQueue: DatabaseQueue) throws {
     try dbQueue.write { db in
-        try db.create(table: "assets") { t in
+        try db.create(table: Asset.databaseTableName) { t in
             t.primaryKey("id", .text)
         }
+    }
+}
+
+func recordExists(in dbQueue: DatabaseQueue, id: String) throws -> Bool {
+    return try dbQueue.read { db in
+        return try Asset.fetchOne(db, key: id) != nil
+    }
+}
+
+func insertRecord(in dbQueue: DatabaseQueue, id: String) throws {
+    let asset = Asset(id: id)
+    try dbQueue.write { db in
+        try asset.insert(db)
     }
 }

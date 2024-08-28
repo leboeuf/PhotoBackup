@@ -34,6 +34,7 @@ for sharedAlbum: PHAssetCollection in sharedAlbums {
         print("[\(index + 1)/\(sharedAlbum.estimatedAssetCount)]")
         await downloadAsset(asset: asset, db: albumDb, albumId: albumId)
     }
+    exit(EXIT_SUCCESS) // TODO
 }
 
 exit(EXIT_SUCCESS)
@@ -45,35 +46,39 @@ func downloadAsset(asset: PHAsset, db: DatabaseQueue, albumId: String) async {
 
     let creationDate = getCreationDate(of: asset, using: dateFormatter)
     let customId = "\(creationDate)_\(assetId)".trimmingCharacters(in: .whitespaces)
-    print("+ \(customId)")
 
-    // TODO: skip if already in db
+    do {
+        if try recordExists(in: db, id: customId) {
+            print("! \(customId)")
+            print("  ! Skipping (already exists in db)")
+            return
+        }
+    } catch {
+        fatalError("Error reading from database: \(error)")
+    }
+    
+    print("+ \(customId)")
 
     let outputDirectory = getBackupDirectory()
         .appendingPathComponent(albumId)
     createDirectoryIfNotExists(directory: outputDirectory)
 
     if (asset.mediaType == .video) {
-        // Request video
         print("  + Video")
-        await fetchVideo(for: asset, albumId: albumId, fileName: customId)
-        exit(EXIT_SUCCESS) // TODO
+        await fetchVideo(for: asset, albumId: albumId, assetId: customId, db: db)
+        await Task.sleep(1_000_000_000)
         return
     }
 
     if (asset.mediaType == .image) {
-        // Request image
-        print("  + Image")
-
         if (asset.mediaSubtypes.contains(.photoLive)) {
             print("  + Live photo")
-            //await fetchLivePhoto(for: asset, albumId: albumId, fileNamePrefix: creationDate)
-            //exit(EXIT_SUCCESS) // TODO
+            await fetchLivePhoto(for: asset, albumId: albumId, assetId: customId, db: db, fileNamePrefix: creationDate)
         } else {
-            // TODO: fetch photo
-            //await fetchPhoto(for: asset, albumId: albumId, fileNamePrefix: creationDate)
-            //exit(EXIT_SUCCESS) // TODO
+            print("  + Image")
+            await fetchPhoto(for: asset, albumId: albumId, assetId: customId, db: db)
         }
+        await Task.sleep(1_000_000_000)
         return
     }
 

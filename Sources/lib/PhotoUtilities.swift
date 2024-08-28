@@ -1,4 +1,5 @@
 import Photos
+import GRDB
 
 func getAlbumId(for sharedAlbum: PHAssetCollection) -> String {
     return sharedAlbum.localizedTitle ?? sharedAlbum.localIdentifier
@@ -21,7 +22,7 @@ func fetchPhotosInAlbum(for album: PHAssetCollection) -> PHFetchResult<PHAsset> 
     return PHAsset.fetchAssets(in: album, options: fetchOptions)
 }
 
-func fetchVideo(for asset: PHAsset, albumId: String, fileName: String) async {
+func fetchVideo(for asset: PHAsset, albumId: String, assetId: String, db: DatabaseQueue) async {
     return await withCheckedContinuation { continuation in
         let assetResources = PHAssetResource.assetResources(for: asset)
         guard let videoResource = assetResources.first(where: { $0.type == .video }) else {
@@ -34,7 +35,7 @@ func fetchVideo(for asset: PHAsset, albumId: String, fileName: String) async {
 
         let fileExt = (videoResource.originalFilename as NSString).pathExtension
         let outputDirectory = getBackupDirectory().appendingPathComponent(albumId)
-        let videoFileURL = outputDirectory.appendingPathComponent("\(fileName).\(fileExt)")
+        let videoFileURL = outputDirectory.appendingPathComponent("\(assetId).\(fileExt)")
         
         Task {
             do {
@@ -49,13 +50,59 @@ func fetchVideo(for asset: PHAsset, albumId: String, fileName: String) async {
                 fatalError(error.localizedDescription)
             }
 
-            // TODO: save to db
+            // Save to db
+            do {
+                try insertRecord(in: db, id: assetId)
+            } catch {
+                fatalError("Failed to insert record: \(error)")
+            }
+            
             continuation.resume()
         }
     }
 }
 
-func fetchLivePhoto(for asset: PHAsset, albumId: String, fileNamePrefix: String) async {
+func fetchPhoto(for asset: PHAsset, albumId: String, assetId: String, db: DatabaseQueue) async {
+    return await withCheckedContinuation { continuation in
+        let assetResources = PHAssetResource.assetResources(for: asset)
+        guard let photoResource = assetResources.first(where: { $0.type == .photo }) else {
+            fatalError("Error: asset is not a video")
+        }
+
+        // TODO: this approach doesn't keep metadata
+        let options = PHAssetResourceRequestOptions()
+        options.isNetworkAccessAllowed = true
+
+        let fileExt = (photoResource.originalFilename as NSString).pathExtension
+        let outputDirectory = getBackupDirectory().appendingPathComponent(albumId)
+        let photoFileURL = outputDirectory.appendingPathComponent("\(assetId).\(fileExt)")
+        
+        Task {
+            do {
+                // Save video resource of Live Photo
+                if (!FileManager.default.fileExists(atPath: photoFileURL.path)) {
+                    try await PHAssetResourceManager.default().writeData(for: photoResource, toFile: photoFileURL, options: options)
+                    print("  + Photo")
+                } else {
+                    print("  ! Photo skipped (file already exists)")
+                }
+            } catch {
+                fatalError(error.localizedDescription)
+            }
+
+            // Save to db
+            do {
+                try insertRecord(in: db, id: assetId)
+            } catch {
+                fatalError("Failed to insert record: \(error)")
+            }
+
+            continuation.resume()
+        }
+    }
+}
+
+func fetchLivePhoto(for asset: PHAsset, albumId: String, assetId: String, db: DatabaseQueue, fileNamePrefix: String) async {
     return await withCheckedContinuation { continuation in
         let livePhotoOptions = PHLivePhotoRequestOptions()
         livePhotoOptions.isNetworkAccessAllowed = true
@@ -118,7 +165,12 @@ func fetchLivePhoto(for asset: PHAsset, albumId: String, fileNamePrefix: String)
                     fatalError(error.localizedDescription)
                 }
 
-                // TODO: save to db
+                // Save to db
+                do {
+                    try insertRecord(in: db, id: assetId)
+                } catch {
+                    fatalError("Failed to insert record: \(error)")
+                }
 
                 continuation.resume()
             }
